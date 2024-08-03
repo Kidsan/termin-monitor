@@ -87,8 +87,7 @@ impl Executor {
                 }
             }
 
-            // if one minute has passed
-            if start.elapsed().as_secs() >= 60 {
+            if start.elapsed().as_secs() >= 3600 {
                 let mut dates = std::collections::HashMap::new();
                 let mut send_message = false;
                 for store in &self.stores {
