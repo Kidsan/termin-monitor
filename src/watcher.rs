@@ -95,7 +95,8 @@ impl Executor {
                 }
 
                 let mut message = String::new();
-                for (store, times) in dates {
+                for store in &self.stores {
+                    let times = dates.get(store).unwrap();
                     let store_name = match store.as_str() {
                         "0885" => "Bonn city center",
                         "0103" => "Bonn Kölnstraße",
@@ -114,9 +115,11 @@ impl Executor {
                     }
                 }
 
-                let m = poise::serenity_prelude::CreateMessage::new().content(message);
                 self.channel
-                    .send_message(&self.discord_client, m)
+                    .send_message(
+                        &self.discord_client,
+                        poise::serenity_prelude::CreateMessage::new().content(message),
+                    )
                     .await
                     .unwrap();
 
