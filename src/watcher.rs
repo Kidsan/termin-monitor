@@ -135,17 +135,18 @@ impl Executor {
                 "0103" => "Bonn Kölnstraße",
                 _ => "Unknown",
             };
-            message.push_str(&format!("Store: {}\n", store_name));
+            message.push_str(&format!("**{}:** \n", store_name));
             if times.is_empty() {
                 message.push_str("No dates available\n\n");
                 continue;
             }
             for time in times {
                 message.push_str(&format!(
-                    "Date: {}\nFrom: {}\nTo: {}\n\n",
+                    "- **{}:** {} -> {}\n",
                     time.date, time.timeslots.from, time.timeslots.to
                 ));
             }
+            message.push('\n');
         }
 
         self.channel
