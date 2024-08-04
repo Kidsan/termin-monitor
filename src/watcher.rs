@@ -89,12 +89,8 @@ impl Executor {
 
             if start.elapsed().as_secs() >= 3600 {
                 let mut dates = std::collections::HashMap::new();
-                let mut send_message = false;
                 for store in &self.stores {
                     let times = self.do_request(store).await.unwrap();
-                    if !times.is_empty() {
-                        send_message = true;
-                    }
                     dates.insert(store, times);
                 }
 
@@ -118,13 +114,11 @@ impl Executor {
                     }
                 }
 
-                if send_message {
-                    let m = poise::serenity_prelude::CreateMessage::new().content(message);
-                    self.channel
-                        .send_message(&self.discord_client, m)
-                        .await
-                        .unwrap();
-                }
+                let m = poise::serenity_prelude::CreateMessage::new().content(message);
+                self.channel
+                    .send_message(&self.discord_client, m)
+                    .await
+                    .unwrap();
 
                 start = tokio::time::Instant::now();
             }
