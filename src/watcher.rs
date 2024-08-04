@@ -1,4 +1,4 @@
-use std::sync::Arc;
+use std::{collections::HashMap, sync::Arc};
 
 use reqwest::Client;
 use serde::Deserialize;
@@ -72,7 +72,10 @@ impl Executor {
             channel,
         }
     }
+
     pub async fn start(&self, signal: std::sync::mpsc::Receiver<()>) {
+        let dates = self.get_dates().await;
+        self.send_result_message(dates).await;
         let mut start = tokio::time::Instant::now();
         loop {
             match signal.try_recv() {
@@ -88,41 +91,8 @@ impl Executor {
             }
 
             if start.elapsed().as_secs() >= 3600 {
-                let mut dates = std::collections::HashMap::new();
-                for store in &self.stores {
-                    let times = self.do_request(store).await.unwrap();
-                    dates.insert(store, times);
-                }
-
-                let mut message = String::new();
-                for store in &self.stores {
-                    let times = dates.get(store).unwrap();
-                    let store_name = match store.as_str() {
-                        "0885" => "Bonn city center",
-                        "0103" => "Bonn Kölnstraße",
-                        _ => "Unknown",
-                    };
-                    message.push_str(&format!("Store: {}\n", store_name));
-                    if times.is_empty() {
-                        message.push_str("No dates available\n\n");
-                        continue;
-                    }
-                    for time in times {
-                        message.push_str(&format!(
-                            "Date: {}\nFrom: {}\nTo: {}\n\n",
-                            time.date, time.timeslots.from, time.timeslots.to
-                        ));
-                    }
-                }
-
-                self.channel
-                    .send_message(
-                        &self.discord_client,
-                        poise::serenity_prelude::CreateMessage::new().content(message),
-                    )
-                    .await
-                    .unwrap();
-
+                let dates = self.get_dates().await;
+                self.send_result_message(dates).await;
                 start = tokio::time::Instant::now();
             }
 
@@ -145,5 +115,45 @@ impl Executor {
             .await
             .unwrap();
         Ok(dates)
+    }
+
+    async fn get_dates(&self) -> HashMap<&String, Vec<FielmannTimeslot>> {
+        let mut dates = std::collections::HashMap::new();
+        for store in &self.stores {
+            let times = self.do_request(store).await.unwrap();
+            dates.insert(store, times);
+        }
+        dates
+    }
+
+    async fn send_result_message(&self, dates: HashMap<&String, Vec<FielmannTimeslot>>) {
+        let mut message = String::new();
+        for store in &self.stores {
+            let times = dates.get(store).unwrap();
+            let store_name = match store.as_str() {
+                "0885" => "Bonn city center",
+                "0103" => "Bonn Kölnstraße",
+                _ => "Unknown",
+            };
+            message.push_str(&format!("Store: {}\n", store_name));
+            if times.is_empty() {
+                message.push_str("No dates available\n\n");
+                continue;
+            }
+            for time in times {
+                message.push_str(&format!(
+                    "Date: {}\nFrom: {}\nTo: {}\n\n",
+                    time.date, time.timeslots.from, time.timeslots.to
+                ));
+            }
+        }
+
+        self.channel
+            .send_message(
+                &self.discord_client,
+                poise::serenity_prelude::CreateMessage::new().content(message),
+            )
+            .await
+            .unwrap();
     }
 }
