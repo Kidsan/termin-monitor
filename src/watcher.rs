@@ -120,8 +120,13 @@ impl Executor {
     async fn get_dates(&self) -> HashMap<&String, Vec<FielmannTimeslot>> {
         let mut dates = std::collections::HashMap::new();
         for store in &self.stores {
-            let times = self.do_request(store).await.unwrap();
-            dates.insert(store, times);
+            match self.do_request(store).await {
+                Ok(times) => dates.insert(store, times),
+                Err(e) => {
+                    dbg!(e);
+                    continue;
+                }
+            };
         }
         dates
     }
